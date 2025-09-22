@@ -168,10 +168,10 @@ export default function App() {
   };
 
   const addTeam = async (newTeam: Team) => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    // if (!user) {
+    //   setShowAuthModal(true);
+    //   return;
+    // }
     
     const { error } = await createTeam(newTeam);
     if (error) {
@@ -181,10 +181,10 @@ export default function App() {
   };
 
   const startNewGame = async (teamA: string, teamB: string, config: GameConfig, profile: 'planillero' | 'coach') => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    // if (!user) {
+    //   setShowAuthModal(true);
+    //   return;
+    // }
 
     // Verificar si alguno de los equipos es mixto
     const teamAData = allTeams.find(team => team.name === teamA);
@@ -239,7 +239,7 @@ export default function App() {
   };
 
   // Mostrar loading mientras se cargan los datos
-  if (authLoading || teamsLoading || gamesLoading) {
+  if (teamsLoading || gamesLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
