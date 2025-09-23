@@ -157,23 +157,37 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Detectar modo desarrollo - solo en localhost
-  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isDevelopment = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname.includes('localhost');
+  
+  // Debug: Log del entorno para verificar en producción
+  console.log('Environment Debug:', {
+    hostname: window.location.hostname,
+    isDevelopment,
+    supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'present' : 'missing',
+    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'missing'
+  });
   
   // Hooks de Supabase (solo en producción)
   const supabaseAuth = useAuth();
   const supabaseTeams = useTeams();
   const supabaseGames = useGames();
   
+  // Verificar si Supabase está configurado correctamente
+  const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  
   // Datos locales para desarrollo
   const [localTeams, setLocalTeams] = useState<Team[]>([]);
   const [localGames, setLocalGames] = useState<Game[]>([]);
   
-  // Usar datos según el modo
-  const user = isDevelopment ? null : supabaseAuth.user;
-  const teams = isDevelopment ? localTeams : supabaseTeams.teams;
-  const games = isDevelopment ? localGames : supabaseGames.games;
-  const teamsLoading = isDevelopment ? false : supabaseTeams.loading;
-  const gamesLoading = isDevelopment ? false : supabaseGames.loading;
+  // Usar datos según el modo - fallback a modo desarrollo si Supabase no está configurado
+  const shouldUseSupabase = !isDevelopment && supabaseConfigured;
+  const user = shouldUseSupabase ? supabaseAuth.user : null;
+  const teams = shouldUseSupabase ? supabaseTeams.teams : localTeams;
+  const games = shouldUseSupabase ? supabaseGames.games : localGames;
+  const teamsLoading = shouldUseSupabase ? supabaseTeams.loading : false;
+  const gamesLoading = shouldUseSupabase ? supabaseGames.loading : false;
 
   // Datos simulados para equipos (mantener compatibilidad)
   const allTeams = [...mockTeamsData, ...teams];
@@ -183,10 +197,10 @@ export default function App() {
   };
 
   const addTeam = async (newTeam: Team) => {
-    if (isDevelopment) {
-      // Modo desarrollo - datos locales
+    if (!shouldUseSupabase) {
+      // Modo desarrollo o Supabase no configurado - datos locales
       setLocalTeams(prev => [newTeam, ...prev]);
-      console.log('Equipo agregado (modo desarrollo):', newTeam);
+      console.log('Equipo agregado (modo local):', newTeam);
     } else {
       // Modo producción - Supabase
       if (!user) {
@@ -224,12 +238,12 @@ export default function App() {
       currentPointGender: undefined
     };
     
-    if (isDevelopment) {
-      // Modo desarrollo - datos locales
+    if (!shouldUseSupabase) {
+      // Modo desarrollo o Supabase no configurado - datos locales
       setLocalGames(prev => [newGame, ...prev]);
       setActiveGame(newGame);
       setCurrentScreen('game');
-      console.log('Partido creado (modo desarrollo):', newGame);
+      console.log('Partido creado (modo local):', newGame);
     } else {
       // Modo producción - Supabase
       if (!user) {
@@ -251,13 +265,13 @@ export default function App() {
   };
 
   const handleUpdateGame = async (updatedGame: Game) => {
-    if (isDevelopment) {
-      // Modo desarrollo - datos locales
+    if (!shouldUseSupabase) {
+      // Modo desarrollo o Supabase no configurado - datos locales
       setLocalGames(prev => prev.map(game => 
         game.id === updatedGame.id ? updatedGame : game
       ));
       setActiveGame(updatedGame);
-      console.log('Partido actualizado (modo desarrollo):', updatedGame);
+      console.log('Partido actualizado (modo local):', updatedGame);
     } else {
       // Modo producción - Supabase
       const { error } = await supabaseGames.updateGame(updatedGame.id, updatedGame);
@@ -288,10 +302,10 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
-        {/* Indicador de modo desarrollo */}
-        {isDevelopment && (
+        {/* Indicador de modo */}
+        {!shouldUseSupabase && (
           <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
-            🚧 MODO DESARROLLO - Datos locales (no se guardan en Supabase)
+            🚧 MODO LOCAL - Datos locales {isDevelopment ? '(desarrollo)' : '(Supabase no configurado)'}
           </div>
         )}
         
