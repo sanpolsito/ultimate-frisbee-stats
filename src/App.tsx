@@ -165,12 +165,13 @@ export default function App() {
   const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
   
   // Debug: Log del entorno para verificar en producción
-  console.log('🔍 Environment Debug:', {
+  console.log('🔍 Environment Debug v2:', {
     hostname: window.location.hostname,
     isDevelopment,
     supabaseConfigured,
     supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'present' : 'missing',
-    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'missing'
+    supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'missing',
+    timestamp: new Date().toISOString()
   });
   
   // Hooks de Supabase (solo si está configurado)
