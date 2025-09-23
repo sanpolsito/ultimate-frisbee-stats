@@ -197,7 +197,7 @@ export default function App() {
   const [localTeams, setLocalTeams] = useState<Team[]>([]);
   const [localGames, setLocalGames] = useState<Game[]>([]);
   
-  // Usar datos según el modo - fallback a modo local si no está en localhost O si Supabase no está configurado
+  // Usar datos según el modo - Supabase en producción si está configurado, local en desarrollo
   const shouldUseSupabase = !isDevelopment && supabaseConfigured;
   const user = shouldUseSupabase ? supabaseAuth.user : null;
   const teams = shouldUseSupabase ? supabaseTeams.teams : localTeams;
@@ -327,9 +327,19 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
         {/* Indicador de modo */}
-        {!shouldUseSupabase && (
+        {isDevelopment && (
           <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
-            🚧 MODO LOCAL - Datos locales {isDevelopment ? '(desarrollo)' : '(Supabase no configurado)'}
+            🚧 MODO DESARROLLO - Datos locales (no se guardan en Supabase)
+          </div>
+        )}
+        {!isDevelopment && !supabaseConfigured && (
+          <div className="bg-red-500 text-white text-center py-2 text-sm font-medium">
+            ⚠️ ERROR: Supabase no configurado - Los datos no se guardarán
+          </div>
+        )}
+        {!isDevelopment && supabaseConfigured && (
+          <div className="bg-green-500 text-white text-center py-2 text-sm font-medium">
+            ✅ MODO PRODUCCIÓN - Datos guardados en Supabase
           </div>
         )}
         
