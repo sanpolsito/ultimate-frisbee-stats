@@ -155,10 +155,25 @@ export default function App() {
   const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Hooks de Supabase
-  const { user, loading: authLoading } = useAuth();
-  const { teams, loading: teamsLoading, createTeam, updateTeam, deleteTeam } = useTeams();
-  const { games, loading: gamesLoading, createGame, updateGame, deleteGame } = useGames();
+  // Detectar modo desarrollo
+  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+  
+  // Hooks de Supabase (solo en producción)
+  const supabaseAuth = useAuth();
+  const supabaseTeams = useTeams();
+  const supabaseGames = useGames();
+  
+  // Datos locales para desarrollo
+  const [localTeams, setLocalTeams] = useState<Team[]>([]);
+  const [localGames, setLocalGames] = useState<Game[]>([]);
+  
+  // Usar datos según el modo
+  const user = isDevelopment ? null : supabaseAuth.user;
+  const authLoading = isDevelopment ? false : supabaseAuth.loading;
+  const teams = isDevelopment ? localTeams : supabaseTeams.teams;
+  const games = isDevelopment ? localGames : supabaseGames.games;
+  const teamsLoading = isDevelopment ? false : supabaseTeams.loading;
+  const gamesLoading = isDevelopment ? false : supabaseGames.loading;
 
   // Datos simulados para equipos (mantener compatibilidad)
   const allTeams = [...mockTeamsData, ...teams];
@@ -168,30 +183,30 @@ export default function App() {
   };
 
   const addTeam = async (newTeam: Team) => {
-    // if (!user) {
-    //   setShowAuthModal(true);
-    //   return;
-    // }
-    
-    const { error } = await createTeam(newTeam);
-    if (error) {
-      console.error('Error creating team:', error);
-      // Aquí podrías mostrar un toast de error
+    if (isDevelopment) {
+      // Modo desarrollo - datos locales
+      setLocalTeams(prev => [newTeam, ...prev]);
+      console.log('Equipo agregado (modo desarrollo):', newTeam);
+    } else {
+      // Modo producción - Supabase
+      if (!user) {
+        setShowAuthModal(true);
+        return;
+      }
+      const { error } = await supabaseTeams.createTeam(newTeam);
+      if (error) {
+        console.error('Error creating team:', error);
+      }
     }
   };
 
   const startNewGame = async (teamA: string, teamB: string, config: GameConfig, profile: 'planillero' | 'coach') => {
-    // if (!user) {
-    //   setShowAuthModal(true);
-    //   return;
-    // }
-
-    // Verificar si alguno de los equipos es mixto
     const teamAData = allTeams.find(team => team.name === teamA);
     const teamBData = allTeams.find(team => team.name === teamB);
     const isMixedGame = teamAData?.category === 'mixta' || teamBData?.category === 'mixta';
     
-    const newGame: Omit<Game, 'id'> = {
+    const newGame: Game = {
+      id: Date.now().toString(),
       teamA,
       teamB,
       scoreA: 0,
@@ -209,28 +224,48 @@ export default function App() {
       currentPointGender: undefined
     };
     
-    const { data, error } = await createGame(newGame);
-    if (error) {
-      console.error('Error creating game:', error);
-      // Aquí podrías mostrar un toast de error
-    } else if (data) {
-      // Convertir el juego creado al formato esperado
-      const createdGame: Game = {
-        id: data.id,
-        ...newGame
-      };
-      setActiveGame(createdGame);
+    if (isDevelopment) {
+      // Modo desarrollo - datos locales
+      setLocalGames(prev => [newGame, ...prev]);
+      setActiveGame(newGame);
       setCurrentScreen('game');
+      console.log('Partido creado (modo desarrollo):', newGame);
+    } else {
+      // Modo producción - Supabase
+      if (!user) {
+        setShowAuthModal(true);
+        return;
+      }
+      const { data, error } = await supabaseGames.createGame(newGame);
+      if (error) {
+        console.error('Error creating game:', error);
+      } else if (data) {
+        const createdGame: Game = {
+          id: data.id,
+          ...newGame
+        };
+        setActiveGame(createdGame);
+        setCurrentScreen('game');
+      }
     }
   };
 
   const handleUpdateGame = async (updatedGame: Game) => {
-    const { error } = await updateGame(updatedGame.id, updatedGame);
-    if (error) {
-      console.error('Error updating game:', error);
-      // Aquí podrías mostrar un toast de error
-    } else {
+    if (isDevelopment) {
+      // Modo desarrollo - datos locales
+      setLocalGames(prev => prev.map(game => 
+        game.id === updatedGame.id ? updatedGame : game
+      ));
       setActiveGame(updatedGame);
+      console.log('Partido actualizado (modo desarrollo):', updatedGame);
+    } else {
+      // Modo producción - Supabase
+      const { error } = await supabaseGames.updateGame(updatedGame.id, updatedGame);
+      if (error) {
+        console.error('Error updating game:', error);
+      } else {
+        setActiveGame(updatedGame);
+      }
     }
   };
 
@@ -252,6 +287,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Indicador de modo desarrollo */}
+      {isDevelopment && (
+        <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
+          🚧 MODO DESARROLLO - Datos locales (no se guardan en Supabase)
+        </div>
+      )}
+      
       {currentScreen === 'home' && (
         <HomeScreen 
           games={games}
