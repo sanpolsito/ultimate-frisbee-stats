@@ -327,6 +327,11 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
+        {/* Debug banner - siempre visible */}
+        <div className="bg-blue-500 text-white text-center py-2 text-sm font-medium">
+          🔧 DEBUG: App loaded - {isDevelopment ? 'Development' : 'Production'} - Supabase: {supabaseConfigured ? 'OK' : 'Missing'}
+        </div>
+        
         {/* Indicador de modo */}
         {isDevelopment && (
           <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
