@@ -174,9 +174,24 @@ export default function App() {
   });
   
   // Hooks de Supabase (solo si está configurado)
-  const supabaseAuth = supabaseConfigured ? useAuth() : { user: null, loading: false, signIn: () => {}, signUp: () => {}, signOut: () => {} };
-  const supabaseTeams = supabaseConfigured ? useTeams() : { teams: [], loading: false, createTeam: () => {}, updateTeam: () => {}, deleteTeam: () => {}, refetch: () => {} };
-  const supabaseGames = supabaseConfigured ? useGames() : { games: [], loading: false, createGame: () => {}, updateGame: () => {}, deleteGame: () => {}, refetch: () => {} };
+  let supabaseAuth, supabaseTeams, supabaseGames;
+  
+  try {
+    if (supabaseConfigured) {
+      supabaseAuth = useAuth();
+      supabaseTeams = useTeams();
+      supabaseGames = useGames();
+    } else {
+      supabaseAuth = { user: null, loading: false, signIn: () => {}, signUp: () => {}, signOut: () => {} };
+      supabaseTeams = { teams: [], loading: false, createTeam: () => {}, updateTeam: () => {}, deleteTeam: () => {}, refetch: () => {} };
+      supabaseGames = { games: [], loading: false, createGame: () => {}, updateGame: () => {}, deleteGame: () => {}, refetch: () => {} };
+    }
+  } catch (error) {
+    console.error('Error initializing Supabase hooks:', error);
+    supabaseAuth = { user: null, loading: false, signIn: () => {}, signUp: () => {}, signOut: () => {} };
+    supabaseTeams = { teams: [], loading: false, createTeam: () => {}, updateTeam: () => {}, deleteTeam: () => {}, refetch: () => {} };
+    supabaseGames = { games: [], loading: false, createGame: () => {}, updateGame: () => {}, deleteGame: () => {}, refetch: () => {} };
+  }
   
   // Datos locales para desarrollo
   const [localTeams, setLocalTeams] = useState<Team[]>([]);
