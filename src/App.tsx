@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { HomeScreen } from './components/HomeScreen';
 import { GameScreen } from './components/GameScreen';
 import { StatsScreen } from './components/StatsScreen';
 import { TeamsScreen } from './components/TeamsScreen';
 import { AuthModal } from './components/AuthModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth, useTeams, useGames } from './hooks/useSupabase';
 
 export interface StatEvent {
@@ -155,8 +156,8 @@ export default function App() {
   const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Detectar modo desarrollo
-  const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
+  // Detectar modo desarrollo - solo en localhost
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   
   // Hooks de Supabase (solo en producción)
   const supabaseAuth = useAuth();
@@ -169,7 +170,6 @@ export default function App() {
   
   // Usar datos según el modo
   const user = isDevelopment ? null : supabaseAuth.user;
-  const authLoading = isDevelopment ? false : supabaseAuth.loading;
   const teams = isDevelopment ? localTeams : supabaseTeams.teams;
   const games = isDevelopment ? localGames : supabaseGames.games;
   const teamsLoading = isDevelopment ? false : supabaseTeams.loading;
@@ -241,8 +241,8 @@ export default function App() {
         console.error('Error creating game:', error);
       } else if (data) {
         const createdGame: Game = {
-          id: data.id,
-          ...newGame
+          ...newGame,
+          id: data.id
         };
         setActiveGame(createdGame);
         setCurrentScreen('game');
@@ -286,56 +286,58 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Indicador de modo desarrollo */}
-      {isDevelopment && (
-        <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
-          🚧 MODO DESARROLLO - Datos locales (no se guardan en Supabase)
-        </div>
-      )}
-      
-      {currentScreen === 'home' && (
-        <HomeScreen 
-          games={games}
-          teams={allTeams}
-          onNavigate={navigateTo}
-          onStartNewGame={startNewGame}
-          onSelectGame={selectGame}
-          user={user}
-          onShowAuth={() => setShowAuthModal(true)}
-        />
-      )}
-      
-      {currentScreen === 'game' && activeGame && (
-        <GameScreen 
-          game={activeGame}
-          teams={allTeams}
-          onNavigate={navigateTo}
-          onUpdateGame={handleUpdateGame}
-        />
-      )}
-      
-      {currentScreen === 'stats' && activeGame && (
-        <StatsScreen 
-          game={activeGame}
-          onNavigate={navigateTo}
-        />
-      )}
-      
-      {currentScreen === 'teams' && (
-        <TeamsScreen 
-          teams={teams}
-          onNavigate={navigateTo}
-          onAddTeam={addTeam}
-          user={user}
-          onShowAuth={() => setShowAuthModal(true)}
-        />
-      )}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        {/* Indicador de modo desarrollo */}
+        {isDevelopment && (
+          <div className="bg-yellow-500 text-black text-center py-2 text-sm font-medium">
+            🚧 MODO DESARROLLO - Datos locales (no se guardan en Supabase)
+          </div>
+        )}
+        
+        {currentScreen === 'home' && (
+          <HomeScreen 
+            games={games}
+            teams={allTeams}
+            onNavigate={navigateTo}
+            onStartNewGame={startNewGame}
+            onSelectGame={selectGame}
+            user={user}
+            onShowAuth={() => setShowAuthModal(true)}
+          />
+        )}
+        
+        {currentScreen === 'game' && activeGame && (
+          <GameScreen 
+            game={activeGame}
+            teams={allTeams}
+            onNavigate={navigateTo}
+            onUpdateGame={handleUpdateGame}
+          />
+        )}
+        
+        {currentScreen === 'stats' && activeGame && (
+          <StatsScreen 
+            game={activeGame}
+            onNavigate={navigateTo}
+          />
+        )}
+        
+        {currentScreen === 'teams' && (
+          <TeamsScreen 
+            teams={teams}
+            onNavigate={navigateTo}
+            onAddTeam={addTeam}
+            user={user}
+            onShowAuth={() => setShowAuthModal(true)}
+          />
+        )}
 
-      <AuthModal 
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
-    </div>
+        <AuthModal 
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+        />
+      </div>
+    </ErrorBoundary>
   );
 }

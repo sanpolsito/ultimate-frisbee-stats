@@ -63,6 +63,8 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "vite build"
+            "build": "vite build",
+            "check-env": "node scripts/check-env.js",
+            "preview": "vite preview"
       }
 }
