@@ -161,33 +161,42 @@ export default function App() {
                        window.location.hostname === '127.0.0.1' ||
                        window.location.hostname.includes('localhost');
   
+  // Verificar si Supabase está configurado correctamente
+  const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  
   // Debug: Log del entorno para verificar en producción
-  console.log('Environment Debug:', {
+  console.log('🔍 Environment Debug:', {
     hostname: window.location.hostname,
     isDevelopment,
+    supabaseConfigured,
     supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'present' : 'missing',
     supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'missing'
   });
   
-  // Hooks de Supabase (solo en producción)
-  const supabaseAuth = useAuth();
-  const supabaseTeams = useTeams();
-  const supabaseGames = useGames();
-  
-  // Verificar si Supabase está configurado correctamente
-  const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  // Hooks de Supabase (solo si está configurado)
+  const supabaseAuth = supabaseConfigured ? useAuth() : { user: null, loading: false, signIn: () => {}, signUp: () => {}, signOut: () => {} };
+  const supabaseTeams = supabaseConfigured ? useTeams() : { teams: [], loading: false, createTeam: () => {}, updateTeam: () => {}, deleteTeam: () => {}, refetch: () => {} };
+  const supabaseGames = supabaseConfigured ? useGames() : { games: [], loading: false, createGame: () => {}, updateGame: () => {}, deleteGame: () => {}, refetch: () => {} };
   
   // Datos locales para desarrollo
   const [localTeams, setLocalTeams] = useState<Team[]>([]);
   const [localGames, setLocalGames] = useState<Game[]>([]);
   
-  // Usar datos según el modo - fallback a modo desarrollo si Supabase no está configurado
+  // Usar datos según el modo - fallback a modo local si no está en localhost O si Supabase no está configurado
   const shouldUseSupabase = !isDevelopment && supabaseConfigured;
   const user = shouldUseSupabase ? supabaseAuth.user : null;
   const teams = shouldUseSupabase ? supabaseTeams.teams : localTeams;
   const games = shouldUseSupabase ? supabaseGames.games : localGames;
   const teamsLoading = shouldUseSupabase ? supabaseTeams.loading : false;
   const gamesLoading = shouldUseSupabase ? supabaseGames.loading : false;
+  
+  // Debug adicional
+  console.log('🔧 App State:', {
+    shouldUseSupabase,
+    user: user ? 'authenticated' : 'not authenticated',
+    teamsCount: teams.length,
+    gamesCount: games.length
+  });
 
   // Datos simulados para equipos (mantener compatibilidad)
   const allTeams = [...mockTeamsData, ...teams];
