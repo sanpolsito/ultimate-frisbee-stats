@@ -164,8 +164,11 @@ export default function App() {
   // Verificar si Supabase está configurado correctamente
   const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
   
-  // TEMPORAL: Forzar modo local en producción hasta que Supabase esté configurado
-  const forceLocalMode = true; // Cambiar a false cuando Supabase esté configurado
+  // REGLA: Supabase es OBLIGATORIO en producción - NO se puede desactivar
+  if (!isDevelopment && !supabaseConfigured) {
+    console.error('🚨 ERROR CRÍTICO: Supabase no está configurado en producción');
+    console.error('Variables requeridas: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY');
+  }
   
   // Debug: Log del entorno para verificar en producción
   console.log('🔍 Environment Debug v2:', {
@@ -201,8 +204,8 @@ export default function App() {
   const [localTeams, setLocalTeams] = useState<Team[]>([]);
   const [localGames, setLocalGames] = useState<Game[]>([]);
   
-  // Usar datos según el modo - TEMPORAL: forzar modo local en producción
-  const shouldUseSupabase = !isDevelopment && supabaseConfigured && !forceLocalMode;
+  // REGLA: En producción SIEMPRE usar Supabase, en desarrollo usar local
+  const shouldUseSupabase = !isDevelopment; // OBLIGATORIO en producción
   const user = shouldUseSupabase ? supabaseAuth.user : null;
   const teams = shouldUseSupabase ? supabaseTeams.teams : localTeams;
   const games = shouldUseSupabase ? supabaseGames.games : localGames;
@@ -226,11 +229,16 @@ export default function App() {
 
   const addTeam = async (newTeam: Team) => {
     if (!shouldUseSupabase) {
-      // Modo desarrollo o Supabase no configurado - datos locales
+      // Modo desarrollo - datos locales
       setLocalTeams(prev => [newTeam, ...prev]);
       console.log('Equipo agregado (modo local):', newTeam);
     } else {
-      // Modo producción - Supabase
+      // Modo producción - Supabase OBLIGATORIO
+      if (!supabaseConfigured) {
+        console.error('🚨 ERROR: No se puede crear equipo - Supabase no configurado');
+        alert('Error: La base de datos no está configurada. Contacta al administrador.');
+        return;
+      }
       if (!user) {
         setShowAuthModal(true);
         return;
@@ -238,6 +246,7 @@ export default function App() {
       const { error } = await supabaseTeams.createTeam(newTeam);
       if (error) {
         console.error('Error creating team:', error);
+        alert('Error al crear equipo: ' + error.message);
       }
     }
   };
@@ -332,7 +341,7 @@ export default function App() {
       <div className="min-h-screen bg-background">
         {/* Debug banner - siempre visible */}
         <div className="bg-blue-500 text-white text-center py-2 text-sm font-medium">
-          🔧 DEBUG: App loaded - {isDevelopment ? 'Development' : 'Production'} - Supabase: {supabaseConfigured ? 'OK' : 'Missing'} - Force Local: {forceLocalMode ? 'YES' : 'NO'}
+          🔧 DEBUG: App loaded - {isDevelopment ? 'Development' : 'Production'} - Supabase: {supabaseConfigured ? 'OK' : 'Missing'} - Mode: {shouldUseSupabase ? 'Supabase' : 'Local'}
         </div>
         
         {/* Indicador de modo */}
