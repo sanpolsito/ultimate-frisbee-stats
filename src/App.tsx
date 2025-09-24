@@ -164,6 +164,9 @@ export default function App() {
   // Verificar si Supabase está configurado correctamente
   const supabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
   
+  // TEMPORAL: Forzar modo local en producción hasta que Supabase esté configurado
+  const forceLocalMode = true; // Cambiar a false cuando Supabase esté configurado
+  
   // Debug: Log del entorno para verificar en producción
   console.log('🔍 Environment Debug v2:', {
     hostname: window.location.hostname,
@@ -198,8 +201,8 @@ export default function App() {
   const [localTeams, setLocalTeams] = useState<Team[]>([]);
   const [localGames, setLocalGames] = useState<Game[]>([]);
   
-  // Usar datos según el modo - Supabase en producción si está configurado, local en desarrollo
-  const shouldUseSupabase = !isDevelopment && supabaseConfigured;
+  // Usar datos según el modo - TEMPORAL: forzar modo local en producción
+  const shouldUseSupabase = !isDevelopment && supabaseConfigured && !forceLocalMode;
   const user = shouldUseSupabase ? supabaseAuth.user : null;
   const teams = shouldUseSupabase ? supabaseTeams.teams : localTeams;
   const games = shouldUseSupabase ? supabaseGames.games : localGames;
@@ -329,7 +332,7 @@ export default function App() {
       <div className="min-h-screen bg-background">
         {/* Debug banner - siempre visible */}
         <div className="bg-blue-500 text-white text-center py-2 text-sm font-medium">
-          🔧 DEBUG: App loaded - {isDevelopment ? 'Development' : 'Production'} - Supabase: {supabaseConfigured ? 'OK' : 'Missing'}
+          🔧 DEBUG: App loaded - {isDevelopment ? 'Development' : 'Production'} - Supabase: {supabaseConfigured ? 'OK' : 'Missing'} - Force Local: {forceLocalMode ? 'YES' : 'NO'}
         </div>
         
         {/* Indicador de modo */}
