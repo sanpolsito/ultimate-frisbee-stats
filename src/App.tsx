@@ -212,6 +212,10 @@ export default function App() {
   const teamsLoading = shouldUseSupabase ? supabaseTeams.loading : false;
   const gamesLoading = shouldUseSupabase ? supabaseGames.loading : false;
   
+  // Estado de autenticación para mostrar en UI
+  const isAuthenticated = !!user;
+  const needsAuth = shouldUseSupabase && !isAuthenticated;
+  
   // Debug adicional
   console.log('🔧 App State:', {
     shouldUseSupabase,
@@ -276,13 +280,18 @@ export default function App() {
     };
     
     if (!shouldUseSupabase) {
-      // Modo desarrollo o Supabase no configurado - datos locales
+      // Modo desarrollo - datos locales
       setLocalGames(prev => [newGame, ...prev]);
       setActiveGame(newGame);
       setCurrentScreen('game');
       console.log('Partido creado (modo local):', newGame);
     } else {
-      // Modo producción - Supabase
+      // Modo producción - Supabase OBLIGATORIO
+      if (!supabaseConfigured) {
+        console.error('🚨 ERROR: No se puede crear partido - Supabase no configurado');
+        alert('Error: La base de datos no está configurada. Contacta al administrador.');
+        return;
+      }
       if (!user) {
         setShowAuthModal(true);
         return;
@@ -290,6 +299,7 @@ export default function App() {
       const { data, error } = await supabaseGames.createGame(newGame);
       if (error) {
         console.error('Error creating game:', error);
+        alert('Error al crear partido: ' + error.message);
       } else if (data) {
         const createdGame: Game = {
           ...newGame,
@@ -341,8 +351,15 @@ export default function App() {
       <div className="min-h-screen bg-background">
         {/* Debug banner - siempre visible */}
         <div className="bg-blue-500 text-white text-center py-2 text-sm font-medium">
-          🔧 DEBUG: App loaded - {isDevelopment ? 'Development' : 'Production'} - Supabase: {supabaseConfigured ? 'OK' : 'Missing'} - Mode: {shouldUseSupabase ? 'Supabase' : 'Local'}
+          🔧 DEBUG: App loaded - {isDevelopment ? 'Development' : 'Production'} - Supabase: {supabaseConfigured ? 'OK' : 'Missing'} - Mode: {shouldUseSupabase ? 'Supabase' : 'Local'} - Auth: {isAuthenticated ? 'YES' : 'NO'}
         </div>
+        
+        {/* Banner de autenticación requerida */}
+        {needsAuth && (
+          <div className="bg-orange-500 text-white text-center py-2 text-sm font-medium">
+            🔐 AUTENTICACIÓN REQUERIDA - Inicia sesión para guardar datos en la base de datos
+          </div>
+        )}
         
         {/* Indicador de modo */}
         {isDevelopment && (
